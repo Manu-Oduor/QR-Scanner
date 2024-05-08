@@ -1,3 +1,5 @@
 <resources>
-    <string name="app_name">QR Code Scanner Application</string>
+    <string name="app_name">QR Code Scanner </string>
+    <string name="open">Open Navigation Drawer</string>
+    <string name="close">Open Navigation Drawer</string>
 </resources>
