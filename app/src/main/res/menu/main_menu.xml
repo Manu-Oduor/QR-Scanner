@@ -7,7 +7,7 @@
     android:icon="@drawable/scan_icon"
     />
     <item
-        android:id="@+id/scan_image"
+        android:id="@+id/scanImage"
         android:title="Scan Image"
         android:icon="@drawable/scan_image_icon"
         />
