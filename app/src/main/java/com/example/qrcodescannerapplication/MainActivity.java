@@ -1,11 +1,14 @@
 package com.example.qrcodescannerapplication;
 
 import android.annotation.TargetApi;
-import android.content.DialogInterface;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
+
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.os.Build;
+
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.view.MenuItem;
@@ -14,7 +17,7 @@ import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResult;
-import androidx.activity.result.ActivityResultCallback;
+
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 
@@ -38,7 +41,6 @@ public class MainActivity extends AppCompatActivity {
 
     DrawerLayout drawerLayout;
 
-    ImageView scanImageView;
     NavigationView navigationView;
     ActionBarDrawerToggle drawerToggle;
     ActivityResultLauncher<ScanOptions> barLauncher;
@@ -129,16 +131,15 @@ public class MainActivity extends AppCompatActivity {
     }
     private void handleImagePickResult(ActivityResult result) {
         if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-            try {
+
                 Uri imageUri = result.getData().getData();
                 // Start the new activity to display the image and scan button
                 Intent intent = new Intent(MainActivity.this, ScanImageFromGallery.class);
                 intent.setData(imageUri);
                 startActivity(intent);
-            } catch (Exception e) {
-                Toast.makeText(MainActivity.this, "Error picking image", Toast.LENGTH_SHORT).show();
-            }
-        } else {
+        }
+        else
+        {
             Toast.makeText(MainActivity.this, "No image selected", Toast.LENGTH_SHORT).show();
         }
     }
@@ -154,25 +155,27 @@ public class MainActivity extends AppCompatActivity {
             AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
             builder.setTitle("Result");
             builder.setMessage(scannedContent);
-            builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialogInterface, int i) {
-                    dialogInterface.dismiss();
+            builder.setPositiveButton("Copy",(dialog,which) ->{
+                ClipboardManager clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                ClipData clip = ClipData.newPlainText("Scan Results", scannedContent);
+                if (clipboardManager != null){
+                    clipboardManager.setPrimaryClip(clip);
+                    Toast.makeText(this,"Copied to Clipboard", Toast.LENGTH_SHORT).show();
                 }
-            }).show();
+            });
+            builder.setNegativeButton("Close", null);
+            AlertDialog dialog = builder.create();
+            dialog.show();
         }
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        switch (requestCode){
-            case REQUEST_CAMERA_PERMISSION:
-                handleCameraPermission(grantResults);
-                break;
-            case REQUEST_READ_STORAGE_PERMISSION:
-                handleStoragePermissionResult(grantResults);
-                break;
+        if (requestCode == REQUEST_CAMERA_PERMISSION) {
+            handleCameraPermission(grantResults);
+        } else if (requestCode == REQUEST_READ_STORAGE_PERMISSION) {
+            handleStoragePermissionResult(grantResults);
         }
     }
     private void handleCameraPermission(int[] grantResults){
