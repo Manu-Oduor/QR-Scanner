@@ -107,7 +107,9 @@ public class ScanImageFromGallery extends AppCompatActivity {
                         Toast.makeText(this,"Results copied to clipboard", Toast.LENGTH_SHORT).show();
                     }
                 });
-        builder.setNegativeButton("Close", null);
+        builder.setNegativeButton("Close",(dialog, which) ->{
+            dialog.dismiss();
+                });
         AlertDialog dialog = builder.create();
         dialog.show();
     }

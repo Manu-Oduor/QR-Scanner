@@ -1,6 +1,5 @@
 package com.example.qrcodescannerapplication;
 
-import android.annotation.TargetApi;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -13,7 +12,6 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.view.MenuItem;
 import android.Manifest;
-import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResult;
@@ -30,9 +28,13 @@ import androidx.core.content.ContextCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.google.android.material.navigation.NavigationView;
-import com.journeyapps.barcodescanner.CaptureActivity;
-import com.journeyapps.barcodescanner.ScanContract;
+import com.google.zxing.ResultPoint;
+import com.journeyapps.barcodescanner.BarcodeCallback;
+import com.journeyapps.barcodescanner.DecoratedBarcodeView;
+import com.journeyapps.barcodescanner.BarcodeResult;
 import com.journeyapps.barcodescanner.ScanOptions;
+
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -40,12 +42,11 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_CAMERA_PERMISSION = 1002;
 
     DrawerLayout drawerLayout;
-
     NavigationView navigationView;
     ActionBarDrawerToggle drawerToggle;
     ActivityResultLauncher<ScanOptions> barLauncher;
-
     ActivityResultLauncher<Intent> imagePickerLauncher;
+    private DecoratedBarcodeView barcodeScannerView;
 
 
     @Override
@@ -67,6 +68,7 @@ public class MainActivity extends AppCompatActivity {
         initUI();
         setupNavigation();
         setupActivityResultLaunchers();
+        setupBarcodeScanner();
     }
     private  void  initUI(){
         // Initialize drawer layout and navigation view
@@ -77,28 +79,47 @@ public class MainActivity extends AppCompatActivity {
         drawerToggle.syncState();
 
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
+        // Initialize the barcode scanner view
+        barcodeScannerView = findViewById(R.id.barcode_scanner);
     }
-    private  void setupNavigation(){
+    private void setupNavigation() {
         navigationView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
             @Override
             public boolean onNavigationItemSelected(@NonNull MenuItem item) {
                 if (item.getItemId() == R.id.scan) {
                     checkCameraPermissionAndScan();
+                    drawerLayout.closeDrawers();// Close navigation drawer after selection
                     return true;
                 } else if (item.getItemId() == R.id.scanImage) {
                     checkStoragePermissionAndPickImage();
+                    drawerLayout.closeDrawers();
                     return true;
                 }
                 return false;
             }
         });
-
     }
-    private  void setupActivityResultLaunchers(){
-        // Initialize the ActivityResultLauncher
-        barLauncher = registerForActivityResult(new ScanContract(), result -> handleScanResult(result.getOriginalIntent()));
-        // Initialize ActivityResultLauncher for image picking
+
+    private void setupActivityResultLaunchers() {
+        // Initialize the ActivityResultLauncher for image picking
         imagePickerLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), this::handleImagePickResult);
+    }
+
+    private void setupBarcodeScanner() {
+        barcodeScannerView.decodeContinuous(new BarcodeCallback() {
+            @Override
+            public void barcodeResult(BarcodeResult result) {
+                // Handle the scanned result here
+                String scannedText = result.getText();
+                // Display the scanned result in an alert dialog
+                showScanResultDialog(scannedText);
+            }
+            @Override
+            public void possibleResultPoints(List<ResultPoint> resultPoints) {
+                // Handle potential result points here if needed
+            }
+        });
     }
 
     private void checkStoragePermissionAndPickImage() {
@@ -109,25 +130,14 @@ public class MainActivity extends AppCompatActivity {
             openGallery();
         }
     }
-
     private void checkCameraPermissionAndScan(){
         //check if camera permission is granted
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED){
-            launchScanActivity();
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            barcodeScannerView.resume(); // Start scanning
         }
         else {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
         }
-    }
-    private void launchScanActivity() {
-        // Create scan options with desired settings
-        ScanOptions options = new ScanOptions();
-        options.setPrompt("Volume up to flash on"); // Set the prompt message
-        options.setBeepEnabled(true); // Enable beep sound on successful scan
-        options.setOrientationLocked(true); // Lock the orientation during scanning
-        options.setCaptureActivity(CaptureActivity.class); // Set the capture activity class to be used
-        // Launch the scan activity and handle the result
-        barLauncher.launch(options);
     }
     private void handleImagePickResult(ActivityResult result) {
         if (result.getResultCode() == RESULT_OK && result.getData() != null) {
@@ -148,9 +158,8 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
         imagePickerLauncher.launch(intent);
     }
-    private void handleScanResult(Intent data) {
-        if (data != null && data.hasExtra("SCAN_RESULT")) {
-            String scannedContent = data.getStringExtra("SCAN_RESULT");
+    private void showScanResultDialog(String scannedContent) {
+
             // Display the scanned result in an alert dialog
             AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
             builder.setTitle("Result");
@@ -163,12 +172,13 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(this,"Copied to Clipboard", Toast.LENGTH_SHORT).show();
                 }
             });
-            builder.setNegativeButton("Close", null);
+            builder.setNegativeButton("Close", (dialog, which) -> {
+            dialog.dismiss();
+        });
             AlertDialog dialog = builder.create();
             dialog.show();
-        }
-    }
 
+    }
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -181,7 +191,7 @@ public class MainActivity extends AppCompatActivity {
     private void handleCameraPermission(int[] grantResults){
         // Check if the request is for camera permission
         if (grantResults.length> 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED){
-            launchScanActivity();
+            barcodeScannerView.resume(); // Start scanning
         }
         else {
             Toast.makeText(this, "Camera permission denied", Toast.LENGTH_SHORT).show();
@@ -194,5 +204,15 @@ public class MainActivity extends AppCompatActivity {
         } else {
             Toast.makeText(this, "Read storage permission denied", Toast.LENGTH_SHORT).show();
         }
+    }
+    @Override
+    protected void onResume(){
+        super.onResume();
+        barcodeScannerView.resume(); // Resume scanning when the activity is resumed
+    }
+    @Override
+    protected void onPause() {
+        super.onPause();
+        barcodeScannerView.pause(); // Pause scanning when the activity is paused
     }
 }
