@@ -12,9 +12,9 @@
         android:icon="@drawable/scan_image_icon"
         />
     <item
-        android:id="@+id/share"
-        android:title="Share"
-        android:icon="@drawable/share_icon"
+        android:id="@+id/history"
+        android:title="History"
+        android:icon="@drawable/history_icon"
         />
     <item
         android:id="@+id/settings"

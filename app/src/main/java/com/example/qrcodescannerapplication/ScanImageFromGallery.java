@@ -6,6 +6,7 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
@@ -20,10 +21,17 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.google.mlkit.vision.barcode.BarcodeScanner;
 import com.google.mlkit.vision.barcode.BarcodeScanning;
 import com.google.mlkit.vision.barcode.common.Barcode;
 import com.google.mlkit.vision.common.InputImage;
+
+import java.lang.reflect.Type;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 
 public class ScanImageFromGallery extends AppCompatActivity {
@@ -95,6 +103,10 @@ public class ScanImageFromGallery extends AppCompatActivity {
     }
 
     private void showResultsDialog(String results) {
+
+        // Save the scan result here (optional)
+        saveScanResult(results);
+
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Scan Results");
         builder.setMessage(results);
@@ -112,6 +124,37 @@ public class ScanImageFromGallery extends AppCompatActivity {
                 });
         AlertDialog dialog = builder.create();
         dialog.show();
+    }
+    private void saveScanResult(String scannedContent) {
+        SharedPreferences sharedPreferences = getSharedPreferences("ScanHistory", MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+
+        // Retrieve the current scan history
+        String currentHistory = sharedPreferences.getString("history", "[]");
+
+        // Use Gson to convert the history string back to a list
+        Gson gson = new Gson();
+        Type type = new TypeToken<List<ScanResult>>() {}.getType();
+        List<ScanResult> scanHistory = gson.fromJson(currentHistory, type);
+
+        // Create a Set to track scanned content and avoid duplicates
+        Set<String> scanContentSet = new HashSet<>();
+        for (ScanResult scanResult : scanHistory) {
+            scanContentSet.add(scanResult.getContent());
+        }
+
+        // Check if the scanned content is already in the Set
+        if (!scanContentSet.contains(scannedContent)) {
+            // If it's not a duplicate, add it to the history
+            ScanResult newScan = new ScanResult(scannedContent, System.currentTimeMillis());
+            scanHistory.add(newScan);
+
+            // Convert the updated scan history list to JSON and save it back to SharedPreferences
+            String updatedHistoryJson = gson.toJson(scanHistory);
+            editor.putString("history", updatedHistoryJson);
+            editor.apply();
+        }
+        // If it's a duplicate, display a toast or handle as needed
     }
 }
 

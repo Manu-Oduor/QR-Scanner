@@ -26,6 +26,7 @@
             </intent-filter>
         </activity>
         <activity android:name=".ScanImageFromGallery"/>
+        <activity android:name=".ScanHistory"/>
     </application>
 
 </manifest>

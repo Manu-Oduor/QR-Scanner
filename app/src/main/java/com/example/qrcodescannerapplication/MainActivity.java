@@ -5,6 +5,7 @@ import android.content.ClipboardManager;
 import android.content.Context;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 
@@ -28,13 +29,18 @@ import androidx.core.content.ContextCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.google.android.material.navigation.NavigationView;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.google.zxing.ResultPoint;
 import com.journeyapps.barcodescanner.BarcodeCallback;
 import com.journeyapps.barcodescanner.DecoratedBarcodeView;
 import com.journeyapps.barcodescanner.BarcodeResult;
 import com.journeyapps.barcodescanner.ScanOptions;
 
+import java.lang.reflect.Type;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -93,6 +99,11 @@ public class MainActivity extends AppCompatActivity {
                     return true;
                 } else if (item.getItemId() == R.id.scanImage) {
                     checkStoragePermissionAndPickImage();
+                    drawerLayout.closeDrawers();
+                    return true;
+                } else if (item.getItemId() == R.id.history) {
+                    Intent intent = new Intent(MainActivity.this,ScanHistory.class);
+                    startActivity(intent);
                     drawerLayout.closeDrawers();
                     return true;
                 }
@@ -160,6 +171,9 @@ public class MainActivity extends AppCompatActivity {
     }
     private void showScanResultDialog(String scannedContent) {
 
+        // Save the scan result
+        saveScanResult(scannedContent);
+
             // Display the scanned result in an alert dialog
             AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
             builder.setTitle("Result");
@@ -179,6 +193,37 @@ public class MainActivity extends AppCompatActivity {
             dialog.show();
 
     }
+    private void saveScanResult(String scannedContent) {
+        // Retrieve scan history from SharedPreferences
+        SharedPreferences sharedPreferences = getSharedPreferences("ScanHistory", MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+
+        // Retrieve the existing history or initialize a new Set if none exists
+        String historyJson = sharedPreferences.getString("history", "[]");
+        Gson gson = new Gson();
+        Type type = new TypeToken<List<ScanResult>>() {}.getType();
+        List<ScanResult> scanHistory = gson.fromJson(historyJson, type);
+
+        // Create a Set to track scanned content and avoid duplicates
+        Set<String> scanContentSet = new HashSet<>();
+        for (ScanResult scanResult : scanHistory) {
+            scanContentSet.add(scanResult.getContent());
+        }
+
+        // Check if the scanned content is already in the Set
+        if (!scanContentSet.contains(scannedContent)) {
+            // If it's not a duplicate, add it to the history
+            ScanResult newScan = new ScanResult(scannedContent, System.currentTimeMillis());
+            scanHistory.add(newScan);
+
+            // Convert the updated scan history list to JSON and save it back to SharedPreferences
+            String updatedHistoryJson = gson.toJson(scanHistory);
+            editor.putString("history", updatedHistoryJson);
+            editor.apply();
+        }
+            // If it's a duplicate, display a toast or handle as needed
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
