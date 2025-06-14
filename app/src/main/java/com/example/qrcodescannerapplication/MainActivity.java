@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.net.Uri;
 
 import android.os.Bundle;
@@ -186,12 +187,14 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(this,"Copied to Clipboard", Toast.LENGTH_SHORT).show();
                 }
             });
-            builder.setNegativeButton("Close", (dialog, which) -> {
-            dialog.dismiss();
-        });
-            AlertDialog dialog = builder.create();
-            dialog.show();
-
+            if(scannedContent.startsWith("upi://pay")){
+                builder.setNeutralButton("Pay",(dialog, which) ->{
+                    initiateUpiPayment(scannedContent);
+                });
+            }
+            builder.setNegativeButton("Close", (dialog, which) ->
+            dialog.dismiss());
+            builder.create().show();
     }
     private void saveScanResult(String scannedContent) {
         // Retrieve scan history from SharedPreferences
@@ -221,7 +224,26 @@ public class MainActivity extends AppCompatActivity {
             editor.putString("history", updatedHistoryJson);
             editor.apply();
         }
-            // If it's a duplicate, display a toast or handle as needed
+
+    }
+    private void initiateUpiPayment(String upiUri){
+
+        Uri uri = Uri.parse(upiUri);
+
+        // Create the UPI payment intent
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setData(uri);
+
+        // Check if there is any UPI app to handle this intent
+        PackageManager packageManager = getPackageManager();
+        List<ResolveInfo> upiApps = packageManager.queryIntentActivities(intent, 0);
+
+        if (upiApps != null && !upiApps.isEmpty()) {
+            Intent chooser = Intent.createChooser(intent, "Pay with");
+            startActivity(chooser);
+        } else {
+            Toast.makeText(this, "No UPI app found. Please install one to continue.", Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override
