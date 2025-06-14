@@ -154,7 +154,7 @@ public class ScanImageFromGallery extends AppCompatActivity {
             editor.putString("history", updatedHistoryJson);
             editor.apply();
         }
-        // If it's a duplicate, display a toast or handle as needed
+
     }
 }
 

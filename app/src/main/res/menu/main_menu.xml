@@ -17,6 +17,11 @@
         android:icon="@drawable/history_icon"
         />
     <item
+        android:id="@+id/generateQrCode"
+        android:title="Generate QR Code"
+        android:icon="@drawable/qr_code_generate"
+        />
+    <item
         android:id="@+id/settings"
         android:title="Settings"
         android:icon="@drawable/settings_icon"

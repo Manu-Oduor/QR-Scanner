@@ -107,6 +107,12 @@ public class MainActivity extends AppCompatActivity {
                     drawerLayout.closeDrawers();
                     return true;
                 }
+                else if (item.getItemId() == R.id.generateQrCode){
+                    Intent intent = new Intent(getApplicationContext(),GenerateQRCode.class);
+                    startActivity(intent);
+                    drawerLayout.closeDrawers();
+                    return true;
+                }
                 return false;
             }
         });
@@ -221,7 +227,7 @@ public class MainActivity extends AppCompatActivity {
             editor.putString("history", updatedHistoryJson);
             editor.apply();
         }
-            // If it's a duplicate, display a toast or handle as needed
+
     }
 
     @Override

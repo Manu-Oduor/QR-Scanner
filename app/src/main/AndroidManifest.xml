@@ -27,6 +27,7 @@
         </activity>
         <activity android:name=".ScanImageFromGallery"/>
         <activity android:name=".ScanHistory"/>
+        <activity android:name=".GenerateQRCode"/>
     </application>
 
 </manifest>
