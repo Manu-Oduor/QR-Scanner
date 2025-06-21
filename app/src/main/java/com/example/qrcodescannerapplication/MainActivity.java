@@ -1,46 +1,50 @@
 package com.example.qrcodescannerapplication;
 
-import android.content.ClipData;
-import android.content.ClipboardManager;
-import android.content.Context;
+        import android.content.ClipData;
+        import android.content.ClipboardManager;
+        import android.content.Context;
 
-import android.content.Intent;
-import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
-import android.net.Uri;
+        import android.content.Intent;
+        import android.content.SharedPreferences;
+        import android.content.pm.PackageManager;
+        import android.net.Uri;
 
-import android.os.Bundle;
-import android.provider.MediaStore;
-import android.view.MenuItem;
-import android.Manifest;
-import android.widget.Toast;
+        import android.os.Bundle;
+        import android.provider.MediaStore;
+        import android.view.MenuItem;
+        import android.Manifest;
+        import android.view.View;
+        import android.widget.Toast;
 
-import androidx.activity.result.ActivityResult;
+        import androidx.activity.result.ActivityResult;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
+        import androidx.activity.result.ActivityResultLauncher;
+        import androidx.activity.result.contract.ActivityResultContracts;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.ActionBarDrawerToggle;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-import androidx.drawerlayout.widget.DrawerLayout;
+        import androidx.annotation.NonNull;
+        import androidx.appcompat.app.ActionBarDrawerToggle;
+        import androidx.appcompat.app.AlertDialog;
+        import androidx.appcompat.app.AppCompatActivity;
+        import androidx.core.app.ActivityCompat;
+        import androidx.core.content.ContextCompat;
+        import androidx.drawerlayout.widget.DrawerLayout;
+        import androidx.fragment.app.Fragment;
 
-import com.google.android.material.navigation.NavigationView;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-import com.google.zxing.ResultPoint;
-import com.journeyapps.barcodescanner.BarcodeCallback;
-import com.journeyapps.barcodescanner.DecoratedBarcodeView;
-import com.journeyapps.barcodescanner.BarcodeResult;
-import com.journeyapps.barcodescanner.ScanOptions;
+        import com.google.android.material.navigation.NavigationView;
+        import com.google.gson.Gson;
+        import com.google.gson.reflect.TypeToken;
+        import com.google.zxing.ResultPoint;
+        import com.journeyapps.barcodescanner.BarcodeCallback;
+        import com.journeyapps.barcodescanner.DecoratedBarcodeView;
+        import com.journeyapps.barcodescanner.BarcodeResult;
+        import com.journeyapps.barcodescanner.ScanOptions;
 
-import java.lang.reflect.Type;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+        import java.lang.reflect.Type;
+        import java.util.HashSet;
+        import java.util.List;
+        import java.util.Set;
+
+        ;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -54,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
     ActivityResultLauncher<Intent> imagePickerLauncher;
     private DecoratedBarcodeView barcodeScannerView;
 
-
+    private boolean isDialogVisible = false;
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         // Handle toggle button click for drawer
@@ -75,6 +79,14 @@ public class MainActivity extends AppCompatActivity {
         setupNavigation();
         setupActivityResultLaunchers();
         setupBarcodeScanner();
+
+        // Set default view to the scanner
+        showScannerView();
+        checkCameraPermissionAndScan();
+
+        // Highlight "Scan" menu item
+        navigationView.setCheckedItem(R.id.scan);
+
     }
     private  void  initUI(){
         // Initialize drawer layout and navigation view
@@ -90,37 +102,49 @@ public class MainActivity extends AppCompatActivity {
         barcodeScannerView = findViewById(R.id.barcode_scanner);
     }
     private void setupNavigation() {
-        navigationView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
-            @Override
-            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-                if (item.getItemId() == R.id.scan) {
-                    checkCameraPermissionAndScan();
-                    drawerLayout.closeDrawers();// Close navigation drawer after selection
-                    return true;
-                } else if (item.getItemId() == R.id.scanImage) {
-                    checkStoragePermissionAndPickImage();
-                    drawerLayout.closeDrawers();
-                    return true;
-                } else if (item.getItemId() == R.id.history) {
-                    Intent intent = new Intent(MainActivity.this,ScanHistory.class);
-                    startActivity(intent);
-                    drawerLayout.closeDrawers();
-                    return true;
-                }
-                else if (item.getItemId() == R.id.generateQrCode){
-                    Intent intent = new Intent(getApplicationContext(),GenerateQRCode.class);
-                    startActivity(intent);
-                    drawerLayout.closeDrawers();
-                    return true;
-                }
-                return false;
+        navigationView.setNavigationItemSelectedListener(item ->  {
+
+            int id = item.getItemId();
+
+            if (id == R.id.scan) {
+                showScannerView();
+                checkCameraPermissionAndScan();
+            } else if (id == R.id.scanImage) {
+                checkStoragePermissionAndPickImage();
+            } else if (id == R.id.history) {
+                showFragmentView();
+                loadFragment(new ScanHistoryFragment());
+            } else if (id == R.id.generateQrCode){
+                showFragmentView();
+                loadFragment(new GenerateQRCodeFragment());
             }
+            // Highlight the current item
+            navigationView.setCheckedItem(id);
+
+            drawerLayout.closeDrawers();
+            return true;
         });
+    }
+    private void loadFragment(Fragment fragment) {
+        getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.main_content, fragment)
+                .commit();
+    }
+    private void showScannerView() {
+        barcodeScannerView.setVisibility(View.VISIBLE);
+        findViewById(R.id.main_content).setVisibility(View.GONE);
+    }
+    private void showFragmentView() {
+        barcodeScannerView.setVisibility(View.GONE);
+        findViewById(R.id.main_content).setVisibility(View.VISIBLE);
     }
 
     private void setupActivityResultLaunchers() {
         // Initialize the ActivityResultLauncher for image picking
-        imagePickerLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), this::handleImagePickResult);
+        imagePickerLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                this::handleImagePickResult);
     }
 
     private void setupBarcodeScanner() {
@@ -129,6 +153,9 @@ public class MainActivity extends AppCompatActivity {
             public void barcodeResult(BarcodeResult result) {
                 // Handle the scanned result here
                 String scannedText = result.getText();
+                if (scannedText == null || scannedText.trim().isEmpty() || isDialogVisible) {
+                    return;
+                }
                 // Display the scanned result in an alert dialog
                 showScanResultDialog(scannedText);
             }
@@ -159,11 +186,11 @@ public class MainActivity extends AppCompatActivity {
     private void handleImagePickResult(ActivityResult result) {
         if (result.getResultCode() == RESULT_OK && result.getData() != null) {
 
-                Uri imageUri = result.getData().getData();
-                // Start the new activity to display the image and scan button
-                Intent intent = new Intent(MainActivity.this, ScanImageFromGallery.class);
-                intent.setData(imageUri);
-                startActivity(intent);
+            Uri imageUri = result.getData().getData();
+            // Start the new activity to display the image and scan button
+            Intent intent = new Intent(MainActivity.this, ScanImageFromGallery.class);
+            intent.setData(imageUri);
+            startActivity(intent);
         }
         else
         {
@@ -176,27 +203,31 @@ public class MainActivity extends AppCompatActivity {
         imagePickerLauncher.launch(intent);
     }
     private void showScanResultDialog(String scannedContent) {
-
+        isDialogVisible = true;
         // Save the scan result
         saveScanResult(scannedContent);
 
-            // Display the scanned result in an alert dialog
-            AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-            builder.setTitle("Result");
-            builder.setMessage(scannedContent);
-            builder.setPositiveButton("Copy",(dialog,which) ->{
-                ClipboardManager clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-                ClipData clip = ClipData.newPlainText("Scan Results", scannedContent);
-                if (clipboardManager != null){
-                    clipboardManager.setPrimaryClip(clip);
-                    Toast.makeText(this,"Copied to Clipboard", Toast.LENGTH_SHORT).show();
-                }
-            });
-            builder.setNegativeButton("Close", (dialog, which) -> {
+        // Display the scanned result in an alert dialog
+        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+        builder.setTitle("Result");
+        builder.setMessage(scannedContent);
+        builder.setCancelable(false);
+
+        builder.setPositiveButton("Copy",(dialog,which) ->{
+            ClipboardManager clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            ClipData clip = ClipData.newPlainText("Scan Results", scannedContent);
+            if (clipboardManager != null){
+                clipboardManager.setPrimaryClip(clip);
+                Toast.makeText(this,"Copied to Clipboard", Toast.LENGTH_SHORT).show();
+            }
+        });
+        builder.setNegativeButton("Close", (dialog, which) -> {
+            isDialogVisible = false;
             dialog.dismiss();
         });
-            AlertDialog dialog = builder.create();
-            dialog.show();
+        AlertDialog dialog = builder.create();
+        dialog.setOnDismissListener(d -> isDialogVisible = false);
+        dialog.show();
 
     }
     private void saveScanResult(String scannedContent) {
@@ -220,6 +251,11 @@ public class MainActivity extends AppCompatActivity {
         if (!scanContentSet.contains(scannedContent)) {
             // If it's not a duplicate, add it to the history
             ScanResult newScan = new ScanResult(scannedContent, System.currentTimeMillis());
+
+            if (scanHistory.size() >= 50) {
+                scanHistory.remove(0); // Limit history to 50 items
+            }
+
             scanHistory.add(newScan);
 
             // Convert the updated scan history list to JSON and save it back to SharedPreferences

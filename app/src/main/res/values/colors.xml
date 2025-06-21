@@ -2,4 +2,6 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="drawer_selected_background">#E0F7FA</color>
+    <color name="drawer_selected_text">#00796B</color>
 </resources>
